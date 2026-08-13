@@ -133,10 +133,20 @@ const quadreiroModalOverlay = document.querySelector("#quadreiro-modal-overlay")
 const closeQuadreiroModalButton = document.querySelector("#close-quadreiro-modal");
 const modalTitle = document.querySelector("#modal-title");
 const saveQuadreiroButton = document.querySelector("#save-quadreiro-button");
+const registroEditForm = document.querySelector("#registro-edit-form");
+const registroEditModal = document.querySelector("#registro-edit-modal");
+const registroEditModalOverlay = document.querySelector("#registro-edit-modal-overlay");
+const closeRegistroEditModalButton = document.querySelector("#close-registro-edit-modal");
+const registroEditArbitro = document.querySelector("#registro-edit-arbitro");
+const registroEditSede = document.querySelector("#registro-edit-sede");
+const registroEditQuadreiro = document.querySelector("#registro-edit-quadreiro");
+const registroEditHora = document.querySelector("#registro-edit-hora");
+const registroEditQuantidade = document.querySelector("#registro-edit-quantidade");
 
 let quadreiros = [];
 let registros = [];
 let editingQuadreiroId = null;
+let editingRegistroId = null;
 let currentView = "lancamento";
 let syncTimerId = null;
 let isSyncing = false;
@@ -300,6 +310,38 @@ function closeQuadreiroModal() {
   editingQuadreiroId = null;
 }
 
+function fillRegistroEditQuadreiros(sede, selectedQuadreiro = "") {
+  if (!registroEditQuadreiro) {
+    return;
+  }
+
+  const disponiveis = quadreiros
+    .filter((quadreiro) => quadreiro.sede === sede)
+    .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+
+  registroEditQuadreiro.innerHTML = "";
+
+  const placeholderOption = document.createElement("option");
+  placeholderOption.value = "";
+  placeholderOption.textContent = disponiveis.length
+    ? "Selecione um quadreiro"
+    : "Nenhum quadreiro disponivel nessa sede";
+  placeholderOption.disabled = true;
+  placeholderOption.selected = !selectedQuadreiro;
+  registroEditQuadreiro.appendChild(placeholderOption);
+
+  disponiveis.forEach((quadreiro) => {
+    const option = document.createElement("option");
+    option.value = quadreiro.nome;
+    option.textContent = quadreiro.nome;
+    registroEditQuadreiro.appendChild(option);
+  });
+
+  if (selectedQuadreiro && disponiveis.some((quadreiro) => quadreiro.nome === selectedQuadreiro)) {
+    registroEditQuadreiro.value = selectedQuadreiro;
+  }
+}
+
 function openEditQuadreiroModal(quadreiroId) {
   const quadreiro = quadreiros.find((item) => item.id === quadreiroId);
 
@@ -324,6 +366,36 @@ function openEditQuadreiroModal(quadreiroId) {
   quadreiroModal.classList.remove("hidden");
   quadreiroModal.setAttribute("aria-hidden", "false");
   quadreiroNome.focus();
+}
+
+function closeRegistroEditModal() {
+  if (!registroEditModal || !registroEditForm) {
+    return;
+  }
+
+  registroEditModal.classList.add("hidden");
+  registroEditModal.setAttribute("aria-hidden", "true");
+  registroEditForm.reset();
+  editingRegistroId = null;
+}
+
+function openEditRegistroModal(registroId) {
+  const registro = registros.find((item) => item.id === registroId);
+
+  if (!registro || !registroEditModal) {
+    return;
+  }
+
+  editingRegistroId = registro.id;
+  registroEditArbitro.value = registro.arbitro;
+  registroEditSede.value = registro.sede;
+  registroEditHora.value = registro.hora;
+  registroEditQuantidade.value = String(registro.quantidade);
+  fillRegistroEditQuadreiros(registro.sede, registro.quadreiro);
+
+  registroEditModal.classList.remove("hidden");
+  registroEditModal.setAttribute("aria-hidden", "false");
+  registroEditQuadreiro.focus();
 }
 
 function renderRegistros() {
@@ -358,7 +430,7 @@ function renderRegistros() {
   if (!registrosFiltrados.length) {
     registrosBody.innerHTML = `
       <tr>
-        <td class="empty-state" colspan="5">Nenhum registro lancado para essa sede ainda.</td>
+        <td class="empty-state" colspan="6">Nenhum registro lancado para essa sede ainda.</td>
       </tr>
     `;
     return;
@@ -375,6 +447,17 @@ function renderRegistros() {
           <td>${escapeHtml(registro.quadreiro)}</td>
           <td>${escapeHtml(registro.hora)}</td>
           <td>${escapeHtml(registro.quantidade)}</td>
+          <td>
+            <button
+              class="row-action-button"
+              type="button"
+              data-action="edit-registro"
+              data-registro-id="${escapeHtml(registro.id)}"
+              aria-label="Editar registro de ${escapeHtml(registro.quadreiro)}"
+            >
+              ...
+            </button>
+          </td>
         </tr>
       `,
     )
@@ -398,7 +481,7 @@ function renderPainelRegistros() {
   if (!registrosFiltrados.length) {
     painelRegistrosBody.innerHTML = `
       <tr>
-        <td class="empty-state" colspan="5">Nenhum registro encontrado para os filtros selecionados.</td>
+        <td class="empty-state" colspan="6">Nenhum registro encontrado para os filtros selecionados.</td>
       </tr>
     `;
     totalizadorQuadras.textContent = "Total de quadras: 0";
@@ -421,6 +504,17 @@ function renderPainelRegistros() {
           <td>${escapeHtml(registro.arbitro)}</td>
           <td>${escapeHtml(registro.hora)}</td>
           <td>${escapeHtml(registro.quantidade)}</td>
+          <td>
+            <button
+              class="row-action-button"
+              type="button"
+              data-action="edit-registro"
+              data-registro-id="${escapeHtml(registro.id)}"
+              aria-label="Editar registro de ${escapeHtml(registro.quadreiro)}"
+            >
+              ...
+            </button>
+          </td>
         </tr>
       `,
     )
@@ -633,6 +727,17 @@ async function createRegistro(payload) {
   }
 }
 
+async function updateRegistro(registroId, payload) {
+  const { error } = await supabase
+    .from("registros")
+    .update(payload)
+    .eq("id", registroId);
+
+  if (error) {
+    throw error;
+  }
+}
+
 arbitroSelect.addEventListener("change", updateQuadreirosDisponiveis);
 
 quadreiroForm.addEventListener("submit", async (event) => {
@@ -701,6 +806,45 @@ registroForm.addEventListener("submit", async (event) => {
   }
 });
 
+if (registroEditForm) {
+  registroEditForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    if (!editingRegistroId) {
+      return;
+    }
+
+    const registroAnterior = registros.find((item) => item.id === editingRegistroId);
+
+    if (!registroAnterior) {
+      return;
+    }
+
+    const registroPayload = {
+      quadreiro: registroEditQuadreiro.value,
+      hora: registroEditHora.value,
+      quantidade: Number(registroEditQuantidade.value),
+    };
+
+    if (!registroPayload.quadreiro || !registroPayload.hora || !registroPayload.quantidade) {
+      return;
+    }
+
+    try {
+      await updateRegistro(editingRegistroId, {
+        ...registroPayload,
+        arbitro: registroAnterior.arbitro,
+        sede: registroAnterior.sede,
+      });
+      await syncRemoteData();
+      closeRegistroEditModal();
+    } catch (error) {
+      console.error("Erro ao atualizar registro:", error);
+      window.alert("Nao foi possivel atualizar o registro agora.");
+    }
+  });
+}
+
 if (openRegisterQuadreiroButton) {
   openRegisterQuadreiroButton.addEventListener("click", openQuadreiroModal);
 }
@@ -711,6 +855,14 @@ if (closeQuadreiroModalButton) {
 
 if (quadreiroModalOverlay) {
   quadreiroModalOverlay.addEventListener("click", closeQuadreiroModal);
+}
+
+if (closeRegistroEditModalButton) {
+  closeRegistroEditModalButton.addEventListener("click", closeRegistroEditModal);
+}
+
+if (registroEditModalOverlay) {
+  registroEditModalOverlay.addEventListener("click", closeRegistroEditModal);
 }
 
 if (showLancamentoButton) {
@@ -745,9 +897,38 @@ if (quadreirosBody) {
   });
 }
 
+if (registrosBody) {
+  registrosBody.addEventListener("click", (event) => {
+    const actionButton = event.target.closest("[data-action='edit-registro']");
+
+    if (!actionButton) {
+      return;
+    }
+
+    openEditRegistroModal(actionButton.dataset.registroId);
+  });
+}
+
+if (painelRegistrosBody) {
+  painelRegistrosBody.addEventListener("click", (event) => {
+    const actionButton = event.target.closest("[data-action='edit-registro']");
+
+    if (!actionButton) {
+      return;
+    }
+
+    openEditRegistroModal(actionButton.dataset.registroId);
+  });
+}
+
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !quadreiroModal.classList.contains("hidden")) {
     closeQuadreiroModal();
+    return;
+  }
+
+  if (event.key === "Escape" && registroEditModal && !registroEditModal.classList.contains("hidden")) {
+    closeRegistroEditModal();
   }
 });
 

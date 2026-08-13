@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Quadreiros</title>
-    <link rel="stylesheet" href="styles.css?v=20260813-8" />
+    <link rel="stylesheet" href="styles.css?v=20260813-9" />
   </head>
   <body>
     <div class="app-shell">
@@ -78,6 +78,7 @@
                     <th>Quadreiro</th>
                     <th>Hora</th>
                     <th>Qtd.</th>
+                    <th>Ações</th>
                   </tr>
                 </thead>
                 <tbody id="registros-body"></tbody>
@@ -123,6 +124,7 @@
                     <th>Arbitro</th>
                     <th>Hora</th>
                     <th>Qtd.</th>
+                    <th>Ações</th>
                   </tr>
                 </thead>
                 <tbody id="painel-registros-body"></tbody>
@@ -200,6 +202,52 @@
       </section>
     </div>
 
-    <script type="module" src="app.js?v=20260813-8"></script>
+    <div id="registro-edit-modal" class="modal hidden" aria-hidden="true">
+      <div id="registro-edit-modal-overlay" class="modal-overlay"></div>
+      <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="registro-edit-modal-title">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Registro</p>
+            <h2 id="registro-edit-modal-title">Editar Registro</h2>
+          </div>
+          <button id="close-registro-edit-modal" class="ghost-button" type="button">Fechar</button>
+        </div>
+
+        <form id="registro-edit-form" class="form-grid">
+          <label>
+            Arbitro
+            <input id="registro-edit-arbitro" type="text" readonly />
+          </label>
+
+          <label>
+            Clube sede
+            <input id="registro-edit-sede" type="text" readonly />
+          </label>
+
+          <label class="full-width">
+            Quadreiro
+            <select id="registro-edit-quadreiro" required></select>
+          </label>
+
+          <div class="registro-meta-row full-width">
+            <label class="hora-field">
+              Hora
+              <input id="registro-edit-hora" type="time" required />
+            </label>
+
+            <label class="quantidade-field">
+              Quantidade de quadras
+              <input id="registro-edit-quantidade" type="number" min="1" step="1" required />
+            </label>
+          </div>
+
+          <div class="form-actions full-width">
+            <button id="save-registro-edit-button" class="primary-button" type="submit">Salvar alterações</button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <script type="module" src="app.js?v=20260813-9"></script>
   </body>
 </html>
