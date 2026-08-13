@@ -140,6 +140,7 @@ let editingQuadreiroId = null;
 let currentView = "lancamento";
 let syncTimerId = null;
 let isSyncing = false;
+let realtimeChannel = null;
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -565,6 +566,34 @@ function startAutoSync() {
   }, 10000);
 }
 
+function startRealtimeSync() {
+  if (realtimeChannel) {
+    return;
+  }
+
+  realtimeChannel = supabase
+    .channel("quadreiros-shared-data")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "quadreiros" },
+      () => {
+        syncRemoteData();
+      },
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "registros" },
+      () => {
+        syncRemoteData();
+      },
+    )
+    .subscribe((status) => {
+      if (status === "SUBSCRIBED") {
+        syncRemoteData();
+      }
+    });
+}
+
 async function createQuadreiro(payload) {
   const { error } = await supabase.from("quadreiros").insert(payload);
 
@@ -732,4 +761,5 @@ fillStaticSelects();
 setDefaultHora();
 renderAll();
 startAutoSync();
+startRealtimeSync();
 syncRemoteData();
