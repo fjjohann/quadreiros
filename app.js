@@ -152,6 +152,7 @@ let currentView = "lancamento";
 let syncTimerId = null;
 let isSyncing = false;
 let realtimeChannel = null;
+let deleteRegistroArmed = false;
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -378,6 +379,11 @@ function closeRegistroEditModal() {
   registroEditModal.setAttribute("aria-hidden", "true");
   registroEditForm.reset();
   editingRegistroId = null;
+  deleteRegistroArmed = false;
+
+  if (deleteRegistroButton) {
+    deleteRegistroButton.textContent = "Excluir registro";
+  }
 }
 
 function openEditRegistroModal(registroId) {
@@ -393,6 +399,11 @@ function openEditRegistroModal(registroId) {
   registroEditHora.value = registro.hora;
   registroEditQuantidade.value = String(registro.quantidade);
   fillRegistroEditQuadreiros(registro.sede, registro.quadreiro);
+  deleteRegistroArmed = false;
+
+  if (deleteRegistroButton) {
+    deleteRegistroButton.textContent = "Excluir registro";
+  }
 
   registroEditModal.classList.remove("hidden");
   registroEditModal.setAttribute("aria-hidden", "false");
@@ -863,9 +874,9 @@ if (deleteRegistroButton) {
       return;
     }
 
-    const confirmed = window.confirm("Deseja realmente excluir este registro?");
-
-    if (!confirmed) {
+    if (!deleteRegistroArmed) {
+      deleteRegistroArmed = true;
+      deleteRegistroButton.textContent = "Clique novamente para excluir";
       return;
     }
 
