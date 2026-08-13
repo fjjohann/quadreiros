@@ -73,10 +73,12 @@ textarea {
 
 .view-switch {
   display: inline-flex;
+  flex-wrap: wrap;
   padding: 6px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.55);
   border: 1px solid rgba(90, 67, 41, 0.12);
+  gap: 4px;
 }
 
 .switch-button {
@@ -243,6 +245,16 @@ button:hover {
   line-height: 1;
   background: var(--accent-soft);
   color: var(--accent-strong);
+}
+
+.row-action-button {
+  min-width: 44px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(12, 124, 89, 0.1);
+  color: var(--accent-strong);
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
 .table-block {

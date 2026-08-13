@@ -116,27 +116,33 @@ const registrosSection = document.querySelector("#registros-section");
 const registrosTitle = document.querySelector("#registros-title");
 const lancamentoView = document.querySelector("#lancamento-view");
 const registrosView = document.querySelector("#registros-view");
+const quadreirosView = document.querySelector("#quadreiros-view");
 const showLancamentoButton = document.querySelector("#show-lancamento");
 const showRegistrosButton = document.querySelector("#show-registros");
+const showQuadreirosButton = document.querySelector("#show-quadreiros");
 const filtroSede = document.querySelector("#filtro-sede");
 const filtroQuadreiro = document.querySelector("#filtro-quadreiro");
 const painelRegistrosBody = document.querySelector("#painel-registros-body");
 const totalizadorQuadras = document.querySelector("#totalizador-quadras");
+const quadreirosBody = document.querySelector("#quadreiros-body");
 const openRegisterQuadreiroButton = document.querySelector("#open-register-quadreiro");
 const quadreiroModal = document.querySelector("#quadreiro-modal");
 const quadreiroModalOverlay = document.querySelector("#quadreiro-modal-overlay");
 const closeQuadreiroModalButton = document.querySelector("#close-quadreiro-modal");
+const modalTitle = document.querySelector("#modal-title");
+const saveQuadreiroButton = document.querySelector("#save-quadreiro-button");
 
-let quadreiros = loadStoredData(STORAGE_KEYS.quadreiros, [
+let quadreiros = normalizeQuadreiros(loadStoredData(STORAGE_KEYS.quadreiros, [
   {
     nome: "Quadreiro Exemplo",
     pix: "exemplo@pix.com",
     observacoes: "Substitua por dados reais.",
     sede: "AABB MARINGÁ",
   },
-]);
+]));
 
 let registros = loadStoredData(STORAGE_KEYS.registros, []);
+let editingQuadreiroId = null;
 
 function loadStoredData(key, fallbackValue) {
   const rawValue = localStorage.getItem(key);
@@ -155,6 +161,19 @@ function loadStoredData(key, fallbackValue) {
 
 function saveStoredData(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
+}
+
+function createQuadreiroId() {
+  return `quadreiro-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function normalizeQuadreiros(items) {
+  return items.map((quadreiro) => ({
+    ...quadreiro,
+    id: quadreiro.id || createQuadreiroId(),
+    pix: quadreiro.pix || "",
+    observacoes: quadreiro.observacoes || "",
+  }));
 }
 
 function renderSelectOptions(selectElement, items, placeholder) {
@@ -264,9 +283,18 @@ function fillFiltroQuadreiro() {
 
 function openQuadreiroModal() {
   const arbitro = getArbitroByName(arbitroSelect.value);
+  editingQuadreiroId = null;
 
   if (arbitro) {
     quadreiroSede.value = arbitro.sede;
+  }
+
+  if (modalTitle) {
+    modalTitle.textContent = "Novo Quadreiro";
+  }
+
+  if (saveQuadreiroButton) {
+    saveQuadreiroButton.textContent = "Cadastrar quadreiro";
   }
 
   quadreiroModal.classList.remove("hidden");
@@ -278,6 +306,33 @@ function closeQuadreiroModal() {
   quadreiroModal.classList.add("hidden");
   quadreiroModal.setAttribute("aria-hidden", "true");
   quadreiroForm.reset();
+  editingQuadreiroId = null;
+}
+
+function openEditQuadreiroModal(quadreiroId) {
+  const quadreiro = quadreiros.find((item) => item.id === quadreiroId);
+
+  if (!quadreiro) {
+    return;
+  }
+
+  editingQuadreiroId = quadreiro.id;
+  quadreiroNome.value = quadreiro.nome;
+  quadreiroPix.value = quadreiro.pix;
+  quadreiroObservacoes.value = quadreiro.observacoes;
+  quadreiroSede.value = quadreiro.sede;
+
+  if (modalTitle) {
+    modalTitle.textContent = "Editar Quadreiro";
+  }
+
+  if (saveQuadreiroButton) {
+    saveQuadreiroButton.textContent = "Salvar alterações";
+  }
+
+  quadreiroModal.classList.remove("hidden");
+  quadreiroModal.setAttribute("aria-hidden", "false");
+  quadreiroNome.focus();
 }
 
 function renderRegistros() {
@@ -383,18 +438,69 @@ function renderPainelRegistros() {
   totalizadorQuadras.textContent = `Total de quadras: ${totalQuadras}`;
 }
 
+function renderQuadreirosTable() {
+  if (!quadreirosBody) {
+    return;
+  }
+
+  const quadreirosOrdenados = quadreiros
+    .slice()
+    .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+
+  if (!quadreirosOrdenados.length) {
+    quadreirosBody.innerHTML = `
+      <tr>
+        <td class="empty-state" colspan="5">Nenhum quadreiro cadastrado ainda.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  quadreirosBody.innerHTML = quadreirosOrdenados
+    .map(
+      (quadreiro) => `
+        <tr>
+          <td>${quadreiro.nome}</td>
+          <td>${quadreiro.sede}</td>
+          <td>${quadreiro.pix || "-"}</td>
+          <td>${quadreiro.observacoes || "-"}</td>
+          <td>
+            <button
+              class="row-action-button"
+              type="button"
+              data-action="edit-quadreiro"
+              data-quadreiro-id="${quadreiro.id}"
+              aria-label="Editar ${quadreiro.nome}"
+            >
+              ...
+            </button>
+          </td>
+        </tr>
+      `,
+    )
+    .join("");
+}
+
 function showView(viewName) {
   const showingLancamento = viewName === "lancamento";
+  const showingRegistros = viewName === "registros";
+  const showingQuadreiros = viewName === "quadreiros";
 
   lancamentoView.classList.toggle("hidden-section", !showingLancamento);
-  registrosView.classList.toggle("hidden-section", showingLancamento);
+  registrosView.classList.toggle("hidden-section", !showingRegistros);
+  quadreirosView.classList.toggle("hidden-section", !showingQuadreiros);
   showLancamentoButton.classList.toggle("active", showingLancamento);
-  showRegistrosButton.classList.toggle("active", !showingLancamento);
+  showRegistrosButton.classList.toggle("active", showingRegistros);
+  showQuadreirosButton.classList.toggle("active", showingQuadreiros);
 
-  if (!showingLancamento) {
+  if (showingRegistros) {
     fillFiltroSede();
     fillFiltroQuadreiro();
     renderPainelRegistros();
+  }
+
+  if (showingQuadreiros) {
+    renderQuadreirosTable();
   }
 }
 
@@ -410,18 +516,47 @@ arbitroSelect.addEventListener("change", updateQuadreirosDisponiveis);
 quadreiroForm.addEventListener("submit", (event) => {
   event.preventDefault();
 
-  const novoQuadreiro = {
+  const quadreiroPayload = {
     nome: quadreiroNome.value.trim(),
     pix: quadreiroPix.value.trim(),
     observacoes: quadreiroObservacoes.value.trim(),
     sede: quadreiroSede.value,
   };
 
-  quadreiros = [...quadreiros, novoQuadreiro];
+  if (editingQuadreiroId) {
+    const quadreiroAnterior = quadreiros.find((item) => item.id === editingQuadreiroId);
+
+    quadreiros = quadreiros.map((item) =>
+      item.id === editingQuadreiroId
+        ? { ...item, ...quadreiroPayload }
+        : item,
+    );
+
+    if (quadreiroAnterior && quadreiroAnterior.nome !== quadreiroPayload.nome) {
+      registros = registros.map((registro) =>
+        registro.quadreiro === quadreiroAnterior.nome && registro.sede === quadreiroAnterior.sede
+          ? { ...registro, quadreiro: quadreiroPayload.nome }
+          : registro,
+      );
+      saveStoredData(STORAGE_KEYS.registros, registros);
+    }
+  } else {
+    const novoQuadreiro = {
+      id: createQuadreiroId(),
+      ...quadreiroPayload,
+    };
+
+    quadreiros = [...quadreiros, novoQuadreiro];
+  }
+
   saveStoredData(STORAGE_KEYS.quadreiros, quadreiros);
 
   updateQuadreirosDisponiveis();
-  quadreiroSelect.value = novoQuadreiro.nome;
+  quadreiroSelect.value = quadreiroPayload.nome;
+  renderQuadreirosTable();
+  fillFiltroQuadreiro();
+  renderPainelRegistros();
+  renderRegistros();
   closeQuadreiroModal();
 });
 
@@ -476,12 +611,28 @@ if (showRegistrosButton) {
   showRegistrosButton.addEventListener("click", () => showView("registros"));
 }
 
+if (showQuadreirosButton) {
+  showQuadreirosButton.addEventListener("click", () => showView("quadreiros"));
+}
+
 if (filtroSede) {
   filtroSede.addEventListener("change", renderPainelRegistros);
 }
 
 if (filtroQuadreiro) {
   filtroQuadreiro.addEventListener("change", renderPainelRegistros);
+}
+
+if (quadreirosBody) {
+  quadreirosBody.addEventListener("click", (event) => {
+    const actionButton = event.target.closest("[data-action='edit-quadreiro']");
+
+    if (!actionButton) {
+      return;
+    }
+
+    openEditQuadreiroModal(actionButton.dataset.quadreiroId);
+  });
 }
 
 document.addEventListener("keydown", (event) => {
@@ -493,4 +644,5 @@ document.addEventListener("keydown", (event) => {
 fillStaticSelects();
 renderRegistros();
 renderPainelRegistros();
+renderQuadreirosTable();
 setDefaultHora();

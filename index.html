@@ -4,16 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Quadreiros</title>
-    <link rel="stylesheet" href="styles.css?v=20260813-5" />
+    <link rel="stylesheet" href="styles.css?v=20260813-6" />
   </head>
   <body>
     <div class="app-shell">
       <header class="hero">
-        <div class="hero-bar">
+          <div class="hero-bar">
           <h1>Controle de Quadreiros</h1>
           <div class="view-switch" role="tablist" aria-label="Telas do sistema">
             <button id="show-lancamento" class="switch-button active" type="button">Lançamento</button>
             <button id="show-registros" class="switch-button" type="button">Registros</button>
+            <button id="show-quadreiros" class="switch-button" type="button">Quadreiros</button>
           </div>
         </div>
       </header>
@@ -129,6 +130,34 @@
             </div>
           </div>
         </section>
+
+        <section id="quadreiros-view" class="panel hidden-section">
+          <div class="panel-header">
+            <div>
+              <h2>Quadreiros</h2>
+            </div>
+          </div>
+
+          <div class="table-block">
+            <div class="table-header">
+              <h3>Cadastro de quadreiros</h3>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>Sede</th>
+                    <th>Chave Pix</th>
+                    <th>Campo de texto</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="quadreiros-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
       </main>
     </div>
 
@@ -151,7 +180,7 @@
 
           <label>
             Chave Pix
-            <input id="quadreiro-pix" type="text" required />
+            <input id="quadreiro-pix" type="text" />
           </label>
 
           <label class="full-width">
@@ -165,12 +194,12 @@
           </label>
 
           <div class="form-actions full-width">
-            <button class="primary-button" type="submit">Cadastrar quadreiro</button>
+            <button id="save-quadreiro-button" class="primary-button" type="submit">Cadastrar quadreiro</button>
           </div>
         </form>
       </section>
     </div>
 
-    <script src="app.js?v=20260813-5"></script>
+    <script src="app.js?v=20260813-6"></script>
   </body>
 </html>
