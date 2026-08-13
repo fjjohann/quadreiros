@@ -94,6 +94,16 @@ textarea {
   min-width: 0;
 }
 
+.registro-meta-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.72fr) minmax(220px, 1.28fr);
+  gap: 16px;
+}
+
+.registro-meta-row label {
+  min-width: 0;
+}
+
 .panel-header,
 .table-header,
 .form-actions {
@@ -286,6 +296,10 @@ tbody tr:last-child td {
 
   .field-with-action {
     grid-template-columns: 1fr;
+  }
+
+  .registro-meta-row {
+    grid-template-columns: minmax(140px, 0.75fr) minmax(0, 1.25fr);
   }
 
   .app-shell {
