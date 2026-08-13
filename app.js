@@ -1,3 +1,10 @@
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+
+const SUPABASE_URL = "https://orjelokkrasusscujfda.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_f2CFtgKOdkoVlYIpM8x3hw_gy0jwOtp";
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
 const seedData = {
   sedes: [
     "Aabb Curitiba",
@@ -95,11 +102,6 @@ const seedData = {
   ],
 };
 
-const STORAGE_KEYS = {
-  quadreiros: "quadreiros-app-data",
-  registros: "registros-app-data",
-};
-
 const registroForm = document.querySelector("#registro-form");
 const arbitroSelect = document.querySelector("#arbitro-select");
 const registroSede = document.querySelector("#registro-sede");
@@ -132,48 +134,20 @@ const closeQuadreiroModalButton = document.querySelector("#close-quadreiro-modal
 const modalTitle = document.querySelector("#modal-title");
 const saveQuadreiroButton = document.querySelector("#save-quadreiro-button");
 
-let quadreiros = normalizeQuadreiros(loadStoredData(STORAGE_KEYS.quadreiros, [
-  {
-    nome: "Quadreiro Exemplo",
-    pix: "exemplo@pix.com",
-    observacoes: "Substitua por dados reais.",
-    sede: "AABB MARINGÁ",
-  },
-]));
-
-let registros = loadStoredData(STORAGE_KEYS.registros, []);
+let quadreiros = [];
+let registros = [];
 let editingQuadreiroId = null;
+let currentView = "lancamento";
+let syncTimerId = null;
+let isSyncing = false;
 
-function loadStoredData(key, fallbackValue) {
-  const rawValue = localStorage.getItem(key);
-
-  if (!rawValue) {
-    return fallbackValue;
-  }
-
-  try {
-    const parsed = JSON.parse(rawValue);
-    return Array.isArray(parsed) ? parsed : fallbackValue;
-  } catch (error) {
-    return fallbackValue;
-  }
-}
-
-function saveStoredData(key, value) {
-  localStorage.setItem(key, JSON.stringify(value));
-}
-
-function createQuadreiroId() {
-  return `quadreiro-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function normalizeQuadreiros(items) {
-  return items.map((quadreiro) => ({
-    ...quadreiro,
-    id: quadreiro.id || createQuadreiroId(),
-    pix: quadreiro.pix || "",
-    observacoes: quadreiro.observacoes || "",
-  }));
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
 function renderSelectOptions(selectElement, items, placeholder) {
@@ -218,6 +192,7 @@ function getArbitroByName(nome) {
 function updateQuadreirosDisponiveis() {
   const arbitro = getArbitroByName(arbitroSelect.value);
   const sede = arbitro ? arbitro.sede : "";
+  const selectedQuadreiro = quadreiroSelect.value;
   registroSede.textContent = sede || "Selecione um arbitro";
 
   const disponiveis = quadreiros.filter((quadreiro) => quadreiro.sede === sede);
@@ -240,6 +215,10 @@ function updateQuadreirosDisponiveis() {
     quadreiroSelect.appendChild(option);
   });
 
+  if (selectedQuadreiro && disponiveis.some((quadreiro) => quadreiro.nome === selectedQuadreiro)) {
+    quadreiroSelect.value = selectedQuadreiro;
+  }
+
   renderRegistros();
 }
 
@@ -248,6 +227,7 @@ function fillFiltroSede() {
     return;
   }
 
+  const selectedSede = filtroSede.value;
   const sedesUnicas = [...new Set(registros.map((registro) => registro.sede))].sort((a, b) =>
     a.localeCompare(b, "pt-BR"),
   );
@@ -260,6 +240,10 @@ function fillFiltroSede() {
     option.textContent = sede;
     filtroSede.appendChild(option);
   });
+
+  if (selectedSede && sedesUnicas.includes(selectedSede)) {
+    filtroSede.value = selectedSede;
+  }
 }
 
 function fillFiltroQuadreiro() {
@@ -267,6 +251,7 @@ function fillFiltroQuadreiro() {
     return;
   }
 
+  const selectedQuadreiro = filtroQuadreiro.value;
   const quadreirosUnicos = [...new Set(registros.map((registro) => registro.quadreiro))].sort((a, b) =>
     a.localeCompare(b, "pt-BR"),
   );
@@ -279,11 +264,16 @@ function fillFiltroQuadreiro() {
     option.textContent = nome;
     filtroQuadreiro.appendChild(option);
   });
+
+  if (selectedQuadreiro && quadreirosUnicos.includes(selectedQuadreiro)) {
+    filtroQuadreiro.value = selectedQuadreiro;
+  }
 }
 
 function openQuadreiroModal() {
   const arbitro = getArbitroByName(arbitroSelect.value);
   editingQuadreiroId = null;
+  quadreiroForm.reset();
 
   if (arbitro) {
     quadreiroSede.value = arbitro.sede;
@@ -318,8 +308,8 @@ function openEditQuadreiroModal(quadreiroId) {
 
   editingQuadreiroId = quadreiro.id;
   quadreiroNome.value = quadreiro.nome;
-  quadreiroPix.value = quadreiro.pix;
-  quadreiroObservacoes.value = quadreiro.observacoes;
+  quadreiroPix.value = quadreiro.pix || "";
+  quadreiroObservacoes.value = quadreiro.observacoes || "";
   quadreiroSede.value = quadreiro.sede;
 
   if (modalTitle) {
@@ -375,15 +365,15 @@ function renderRegistros() {
 
   registrosBody.innerHTML = registrosFiltrados
     .slice()
-    .reverse()
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     .map(
       (registro) => `
         <tr>
-          <td>${registro.arbitro}</td>
-          <td>${registro.sede}</td>
-          <td>${registro.quadreiro}</td>
-          <td>${registro.hora}</td>
-          <td>${registro.quantidade}</td>
+          <td>${escapeHtml(registro.arbitro)}</td>
+          <td>${escapeHtml(registro.sede)}</td>
+          <td>${escapeHtml(registro.quadreiro)}</td>
+          <td>${escapeHtml(registro.hora)}</td>
+          <td>${escapeHtml(registro.quantidade)}</td>
         </tr>
       `,
     )
@@ -421,15 +411,15 @@ function renderPainelRegistros() {
 
   painelRegistrosBody.innerHTML = registrosFiltrados
     .slice()
-    .reverse()
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     .map(
       (registro) => `
         <tr>
-          <td>${registro.sede}</td>
-          <td>${registro.quadreiro}</td>
-          <td>${registro.arbitro}</td>
-          <td>${registro.hora}</td>
-          <td>${registro.quantidade}</td>
+          <td>${escapeHtml(registro.sede)}</td>
+          <td>${escapeHtml(registro.quadreiro)}</td>
+          <td>${escapeHtml(registro.arbitro)}</td>
+          <td>${escapeHtml(registro.hora)}</td>
+          <td>${escapeHtml(registro.quantidade)}</td>
         </tr>
       `,
     )
@@ -460,17 +450,17 @@ function renderQuadreirosTable() {
     .map(
       (quadreiro) => `
         <tr>
-          <td>${quadreiro.nome}</td>
-          <td>${quadreiro.sede}</td>
-          <td>${quadreiro.pix || "-"}</td>
-          <td>${quadreiro.observacoes || "-"}</td>
+          <td>${escapeHtml(quadreiro.nome)}</td>
+          <td>${escapeHtml(quadreiro.sede)}</td>
+          <td>${escapeHtml(quadreiro.pix || "-")}</td>
+          <td>${escapeHtml(quadreiro.observacoes || "-")}</td>
           <td>
             <button
               class="row-action-button"
               type="button"
               data-action="edit-quadreiro"
-              data-quadreiro-id="${quadreiro.id}"
-              aria-label="Editar ${quadreiro.nome}"
+              data-quadreiro-id="${escapeHtml(quadreiro.id)}"
+              aria-label="Editar ${escapeHtml(quadreiro.nome)}"
             >
               ...
             </button>
@@ -486,6 +476,7 @@ function showView(viewName) {
   const showingRegistros = viewName === "registros";
   const showingQuadreiros = viewName === "quadreiros";
 
+  currentView = viewName;
   lancamentoView.classList.toggle("hidden-section", !showingLancamento);
   registrosView.classList.toggle("hidden-section", !showingRegistros);
   quadreirosView.classList.toggle("hidden-section", !showingQuadreiros);
@@ -511,9 +502,111 @@ function setDefaultHora() {
   horaInput.value = `${hours}:${minutes}`;
 }
 
+function renderAll() {
+  fillFiltroSede();
+  fillFiltroQuadreiro();
+  updateQuadreirosDisponiveis();
+  renderRegistros();
+  renderPainelRegistros();
+  renderQuadreirosTable();
+  showView(currentView);
+}
+
+async function fetchQuadreiros() {
+  const { data, error } = await supabase
+    .from("quadreiros")
+    .select("*")
+    .order("nome", { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  quadreiros = data || [];
+}
+
+async function fetchRegistros() {
+  const { data, error } = await supabase
+    .from("registros")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  registros = data || [];
+}
+
+async function syncRemoteData() {
+  if (isSyncing) {
+    return;
+  }
+
+  isSyncing = true;
+
+  try {
+    await Promise.all([fetchQuadreiros(), fetchRegistros()]);
+    renderAll();
+  } catch (error) {
+    console.error("Erro ao sincronizar dados do Supabase:", error);
+  } finally {
+    isSyncing = false;
+  }
+}
+
+function startAutoSync() {
+  if (syncTimerId) {
+    clearInterval(syncTimerId);
+  }
+
+  syncTimerId = window.setInterval(() => {
+    syncRemoteData();
+  }, 10000);
+}
+
+async function createQuadreiro(payload) {
+  const { error } = await supabase.from("quadreiros").insert(payload);
+
+  if (error) {
+    throw error;
+  }
+}
+
+async function updateQuadreiro(quadreiroId, payload) {
+  const { error } = await supabase
+    .from("quadreiros")
+    .update(payload)
+    .eq("id", quadreiroId);
+
+  if (error) {
+    throw error;
+  }
+}
+
+async function renameRegistrosFromQuadreiro(quadreiroAnterior, novoNome) {
+  const { error } = await supabase
+    .from("registros")
+    .update({ quadreiro: novoNome })
+    .eq("quadreiro", quadreiroAnterior.nome)
+    .eq("sede", quadreiroAnterior.sede);
+
+  if (error) {
+    throw error;
+  }
+}
+
+async function createRegistro(payload) {
+  const { error } = await supabase.from("registros").insert(payload);
+
+  if (error) {
+    throw error;
+  }
+}
+
 arbitroSelect.addEventListener("change", updateQuadreirosDisponiveis);
 
-quadreiroForm.addEventListener("submit", (event) => {
+quadreiroForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const quadreiroPayload = {
@@ -523,44 +616,32 @@ quadreiroForm.addEventListener("submit", (event) => {
     sede: quadreiroSede.value,
   };
 
-  if (editingQuadreiroId) {
-    const quadreiroAnterior = quadreiros.find((item) => item.id === editingQuadreiroId);
-
-    quadreiros = quadreiros.map((item) =>
-      item.id === editingQuadreiroId
-        ? { ...item, ...quadreiroPayload }
-        : item,
-    );
-
-    if (quadreiroAnterior && quadreiroAnterior.nome !== quadreiroPayload.nome) {
-      registros = registros.map((registro) =>
-        registro.quadreiro === quadreiroAnterior.nome && registro.sede === quadreiroAnterior.sede
-          ? { ...registro, quadreiro: quadreiroPayload.nome }
-          : registro,
-      );
-      saveStoredData(STORAGE_KEYS.registros, registros);
-    }
-  } else {
-    const novoQuadreiro = {
-      id: createQuadreiroId(),
-      ...quadreiroPayload,
-    };
-
-    quadreiros = [...quadreiros, novoQuadreiro];
+  if (!quadreiroPayload.nome || !quadreiroPayload.sede) {
+    return;
   }
 
-  saveStoredData(STORAGE_KEYS.quadreiros, quadreiros);
+  try {
+    if (editingQuadreiroId) {
+      const quadreiroAnterior = quadreiros.find((item) => item.id === editingQuadreiroId);
+      await updateQuadreiro(editingQuadreiroId, quadreiroPayload);
 
-  updateQuadreirosDisponiveis();
-  quadreiroSelect.value = quadreiroPayload.nome;
-  renderQuadreirosTable();
-  fillFiltroQuadreiro();
-  renderPainelRegistros();
-  renderRegistros();
-  closeQuadreiroModal();
+      if (quadreiroAnterior && quadreiroAnterior.nome !== quadreiroPayload.nome) {
+        await renameRegistrosFromQuadreiro(quadreiroAnterior, quadreiroPayload.nome);
+      }
+    } else {
+      await createQuadreiro(quadreiroPayload);
+    }
+
+    await syncRemoteData();
+    quadreiroSelect.value = quadreiroPayload.nome;
+    closeQuadreiroModal();
+  } catch (error) {
+    console.error("Erro ao salvar quadreiro:", error);
+    window.alert("Nao foi possivel salvar o quadreiro agora.");
+  }
 });
 
-registroForm.addEventListener("submit", (event) => {
+registroForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const arbitro = getArbitroByName(arbitroSelect.value);
@@ -574,21 +655,21 @@ registroForm.addEventListener("submit", (event) => {
     sede: arbitro.sede,
     quadreiro: quadreiroSelect.value,
     hora: horaInput.value,
-    quantidade: quantidadeInput.value,
+    quantidade: Number(quantidadeInput.value),
   };
 
-  registros = [...registros, novoRegistro];
-  saveStoredData(STORAGE_KEYS.registros, registros);
-
-  const arbitroSelecionado = arbitro.nome;
-  fillFiltroSede();
-  fillFiltroQuadreiro();
-  renderPainelRegistros();
-  renderRegistros();
-  registroForm.reset();
-  arbitroSelect.value = arbitroSelecionado;
-  setDefaultHora();
-  updateQuadreirosDisponiveis();
+  try {
+    await createRegistro(novoRegistro);
+    await syncRemoteData();
+    const arbitroSelecionado = arbitro.nome;
+    registroForm.reset();
+    arbitroSelect.value = arbitroSelecionado;
+    setDefaultHora();
+    updateQuadreirosDisponiveis();
+  } catch (error) {
+    console.error("Erro ao salvar registro:", error);
+    window.alert("Nao foi possivel salvar o registro agora.");
+  }
 });
 
 if (openRegisterQuadreiroButton) {
@@ -641,8 +722,14 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) {
+    syncRemoteData();
+  }
+});
+
 fillStaticSelects();
-renderRegistros();
-renderPainelRegistros();
-renderQuadreirosTable();
 setDefaultHora();
+renderAll();
+startAutoSync();
+syncRemoteData();
