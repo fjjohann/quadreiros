@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quadreiros</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Sistema de Registros</p>
+          <h1>Controle de Quadreiros</h1>
+          <p class="hero-copy">
+            Cadastre quadreiros e lance novos registros de forma simples.
+          </p>
+        </div>
+        <div class="hero-card">
+          <span>Fluxo atual</span>
+          <strong>Arbitro -> sede -> quadreiros</strong>
+          <small>Sem login, pronto para publicar</small>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Novo Registro</p>
+              <h2>Lancamento</h2>
+            </div>
+          </div>
+
+          <form id="registro-form" class="form-grid">
+            <label>
+              Arbitro
+              <select id="arbitro-select" required></select>
+            </label>
+
+            <label>
+              Clube sede
+              <input id="registro-sede" type="text" readonly />
+            </label>
+
+            <div class="field-with-action">
+              <label>
+                Quadreiro
+                <select id="quadreiro-select" required></select>
+              </label>
+              <button id="open-register-quadreiro" class="icon-button" type="button" aria-label="Cadastrar novo quadreiro">
+                +
+              </button>
+            </div>
+
+            <label>
+              Hora
+              <input id="hora-input" type="time" required />
+            </label>
+
+            <label>
+              Quantidade de quadras
+              <input id="quantidade-input" type="number" min="1" step="1" required />
+            </label>
+
+            <div class="form-actions full-width">
+              <button class="primary-button" type="submit">Salvar registro</button>
+            </div>
+          </form>
+
+          <div class="table-block">
+            <div class="table-header">
+              <h3>Registros recentes</h3>
+              <button id="clear-registros" class="ghost-button" type="button">
+                Limpar registros
+              </button>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Arbitro</th>
+                    <th>Sede</th>
+                    <th>Quadreiro</th>
+                    <th>Hora</th>
+                    <th>Qtd.</th>
+                  </tr>
+                </thead>
+                <tbody id="registros-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="quadreiro-modal" class="modal hidden" aria-hidden="true">
+      <div id="quadreiro-modal-overlay" class="modal-overlay"></div>
+      <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Cadastro</p>
+            <h2 id="modal-title">Novo Quadreiro</h2>
+          </div>
+          <button id="close-quadreiro-modal" class="ghost-button" type="button">Fechar</button>
+        </div>
+
+        <form id="quadreiro-form" class="form-grid">
+          <label>
+            Nome
+            <input id="quadreiro-nome" type="text" required />
+          </label>
+
+          <label>
+            Chave Pix
+            <input id="quadreiro-pix" type="text" required />
+          </label>
+
+          <label class="full-width">
+            Campo de texto
+            <textarea id="quadreiro-observacoes" rows="4"></textarea>
+          </label>
+
+          <label>
+            Clube sede
+            <select id="quadreiro-sede" required></select>
+          </label>
+
+          <div class="form-actions full-width">
+            <button class="primary-button" type="submit">Cadastrar quadreiro</button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
