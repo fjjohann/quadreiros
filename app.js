@@ -188,7 +188,7 @@ function getArbitroByName(nome) {
 function updateQuadreirosDisponiveis() {
   const arbitro = getArbitroByName(arbitroSelect.value);
   const sede = arbitro ? arbitro.sede : "";
-  registroSede.value = sede;
+  registroSede.textContent = sede || "Selecione um arbitro";
 
   const disponiveis = quadreiros.filter((quadreiro) => quadreiro.sede === sede);
 
