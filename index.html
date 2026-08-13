@@ -4,18 +4,22 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Quadreiros</title>
-    <link rel="stylesheet" href="styles.css?v=20260813-3" />
+    <link rel="stylesheet" href="styles.css?v=20260813-4" />
   </head>
   <body>
     <div class="app-shell">
       <header class="hero">
-        <div>
+        <div class="hero-bar">
           <h1>Controle de Quadreiros</h1>
+          <div class="view-switch" role="tablist" aria-label="Telas do sistema">
+            <button id="show-lancamento" class="switch-button active" type="button">Lançamento</button>
+            <button id="show-registros" class="switch-button" type="button">Registros</button>
+          </div>
         </div>
       </header>
 
       <main class="layout">
-        <section class="panel">
+        <section id="lancamento-view" class="panel">
           <div class="panel-header">
             <div>
               <p class="eyebrow">Novo Registro</p>
@@ -81,6 +85,52 @@
             </div>
           </div>
         </section>
+
+        <section id="registros-view" class="panel hidden-section">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Painel</p>
+              <h2>Registros</h2>
+            </div>
+          </div>
+
+          <div class="filtros-grid">
+            <label>
+              Sede
+              <select id="filtro-sede">
+                <option value="">Todas as sedes</option>
+              </select>
+            </label>
+
+            <label>
+              Quadreiro
+              <select id="filtro-quadreiro">
+                <option value="">Todos os quadreiros</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="table-block">
+            <div class="table-header">
+              <h3>Todos os registros</h3>
+              <div id="totalizador-quadras" class="total-chip">Total de quadras: 0</div>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Sede</th>
+                    <th>Quadreiro</th>
+                    <th>Arbitro</th>
+                    <th>Hora</th>
+                    <th>Qtd.</th>
+                  </tr>
+                </thead>
+                <tbody id="painel-registros-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
       </main>
     </div>
 
@@ -123,6 +173,6 @@
       </section>
     </div>
 
-    <script src="app.js?v=20260813-3"></script>
+    <script src="app.js?v=20260813-4"></script>
   </body>
 </html>

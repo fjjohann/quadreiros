@@ -114,6 +114,14 @@ const quadreiroSede = document.querySelector("#quadreiro-sede");
 const registrosBody = document.querySelector("#registros-body");
 const registrosSection = document.querySelector("#registros-section");
 const registrosTitle = document.querySelector("#registros-title");
+const lancamentoView = document.querySelector("#lancamento-view");
+const registrosView = document.querySelector("#registros-view");
+const showLancamentoButton = document.querySelector("#show-lancamento");
+const showRegistrosButton = document.querySelector("#show-registros");
+const filtroSede = document.querySelector("#filtro-sede");
+const filtroQuadreiro = document.querySelector("#filtro-quadreiro");
+const painelRegistrosBody = document.querySelector("#painel-registros-body");
+const totalizadorQuadras = document.querySelector("#totalizador-quadras");
 const openRegisterQuadreiroButton = document.querySelector("#open-register-quadreiro");
 const quadreiroModal = document.querySelector("#quadreiro-modal");
 const quadreiroModalOverlay = document.querySelector("#quadreiro-modal-overlay");
@@ -179,6 +187,9 @@ function fillStaticSelects() {
     seedData.sedes,
     "Selecione um clube sede",
   );
+
+  fillFiltroSede();
+  fillFiltroQuadreiro();
 }
 
 function getArbitroByName(nome) {
@@ -211,6 +222,44 @@ function updateQuadreirosDisponiveis() {
   });
 
   renderRegistros();
+}
+
+function fillFiltroSede() {
+  if (!filtroSede) {
+    return;
+  }
+
+  const sedesUnicas = [...new Set(registros.map((registro) => registro.sede))].sort((a, b) =>
+    a.localeCompare(b, "pt-BR"),
+  );
+
+  filtroSede.innerHTML = `<option value="">Todas as sedes</option>`;
+
+  sedesUnicas.forEach((sede) => {
+    const option = document.createElement("option");
+    option.value = sede;
+    option.textContent = sede;
+    filtroSede.appendChild(option);
+  });
+}
+
+function fillFiltroQuadreiro() {
+  if (!filtroQuadreiro) {
+    return;
+  }
+
+  const quadreirosUnicos = [...new Set(registros.map((registro) => registro.quadreiro))].sort((a, b) =>
+    a.localeCompare(b, "pt-BR"),
+  );
+
+  filtroQuadreiro.innerHTML = `<option value="">Todos os quadreiros</option>`;
+
+  quadreirosUnicos.forEach((nome) => {
+    const option = document.createElement("option");
+    option.value = nome;
+    option.textContent = nome;
+    filtroQuadreiro.appendChild(option);
+  });
 }
 
 function openQuadreiroModal() {
@@ -286,6 +335,69 @@ function renderRegistros() {
     .join("");
 }
 
+function renderPainelRegistros() {
+  if (!painelRegistrosBody || !totalizadorQuadras) {
+    return;
+  }
+
+  const sedeSelecionada = filtroSede ? filtroSede.value : "";
+  const quadreiroSelecionado = filtroQuadreiro ? filtroQuadreiro.value : "";
+
+  const registrosFiltrados = registros.filter((registro) => {
+    const matchSede = !sedeSelecionada || registro.sede === sedeSelecionada;
+    const matchQuadreiro = !quadreiroSelecionado || registro.quadreiro === quadreiroSelecionado;
+    return matchSede && matchQuadreiro;
+  });
+
+  if (!registrosFiltrados.length) {
+    painelRegistrosBody.innerHTML = `
+      <tr>
+        <td class="empty-state" colspan="5">Nenhum registro encontrado para os filtros selecionados.</td>
+      </tr>
+    `;
+    totalizadorQuadras.textContent = "Total de quadras: 0";
+    return;
+  }
+
+  const totalQuadras = registrosFiltrados.reduce(
+    (total, registro) => total + Number(registro.quantidade || 0),
+    0,
+  );
+
+  painelRegistrosBody.innerHTML = registrosFiltrados
+    .slice()
+    .reverse()
+    .map(
+      (registro) => `
+        <tr>
+          <td>${registro.sede}</td>
+          <td>${registro.quadreiro}</td>
+          <td>${registro.arbitro}</td>
+          <td>${registro.hora}</td>
+          <td>${registro.quantidade}</td>
+        </tr>
+      `,
+    )
+    .join("");
+
+  totalizadorQuadras.textContent = `Total de quadras: ${totalQuadras}`;
+}
+
+function showView(viewName) {
+  const showingLancamento = viewName === "lancamento";
+
+  lancamentoView.classList.toggle("hidden-section", !showingLancamento);
+  registrosView.classList.toggle("hidden-section", showingLancamento);
+  showLancamentoButton.classList.toggle("active", showingLancamento);
+  showRegistrosButton.classList.toggle("active", !showingLancamento);
+
+  if (!showingLancamento) {
+    fillFiltroSede();
+    fillFiltroQuadreiro();
+    renderPainelRegistros();
+  }
+}
+
 function setDefaultHora() {
   const now = new Date();
   const hours = String(now.getHours()).padStart(2, "0");
@@ -334,6 +446,9 @@ registroForm.addEventListener("submit", (event) => {
   saveStoredData(STORAGE_KEYS.registros, registros);
 
   const arbitroSelecionado = arbitro.nome;
+  fillFiltroSede();
+  fillFiltroQuadreiro();
+  renderPainelRegistros();
   renderRegistros();
   registroForm.reset();
   arbitroSelect.value = arbitroSelecionado;
@@ -353,6 +468,22 @@ if (quadreiroModalOverlay) {
   quadreiroModalOverlay.addEventListener("click", closeQuadreiroModal);
 }
 
+if (showLancamentoButton) {
+  showLancamentoButton.addEventListener("click", () => showView("lancamento"));
+}
+
+if (showRegistrosButton) {
+  showRegistrosButton.addEventListener("click", () => showView("registros"));
+}
+
+if (filtroSede) {
+  filtroSede.addEventListener("change", renderPainelRegistros);
+}
+
+if (filtroQuadreiro) {
+  filtroQuadreiro.addEventListener("change", renderPainelRegistros);
+}
+
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !quadreiroModal.classList.contains("hidden")) {
     closeQuadreiroModal();
@@ -361,4 +492,5 @@ document.addEventListener("keydown", (event) => {
 
 fillStaticSelects();
 renderRegistros();
+renderPainelRegistros();
 setDefaultHora();

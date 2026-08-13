@@ -45,6 +45,13 @@ textarea {
   margin-bottom: 28px;
 }
 
+.hero-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
 .eyebrow {
   margin: 0 0 6px;
   text-transform: uppercase;
@@ -62,6 +69,26 @@ textarea {
 .hero h1 {
   font-size: clamp(2.3rem, 4vw, 4rem);
   line-height: 0.95;
+}
+
+.view-switch {
+  display: inline-flex;
+  padding: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(90, 67, 41, 0.12);
+}
+
+.switch-button {
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+}
+
+.switch-button.active {
+  background: var(--accent);
+  color: #fff;
 }
 
 .layout {
@@ -102,6 +129,20 @@ textarea {
 
 .registro-meta-row label {
   min-width: 0;
+}
+
+.filtros-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.filtros-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.95rem;
 }
 
 .panel-header,
@@ -208,6 +249,14 @@ button:hover {
   margin-top: 28px;
 }
 
+.total-chip {
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(12, 124, 89, 0.1);
+  color: var(--accent-strong);
+  font-weight: 600;
+}
+
 .table-wrapper {
   overflow-x: auto;
   margin-top: 12px;
@@ -283,6 +332,7 @@ tbody tr:last-child td {
 }
 
 @media (max-width: 920px) {
+  .hero-bar,
   .panel-header,
   .table-header,
   .form-actions {
@@ -290,7 +340,8 @@ tbody tr:last-child td {
     align-items: stretch;
   }
 
-  .form-grid {
+  .form-grid,
+  .filtros-grid {
     grid-template-columns: 1fr;
   }
 
