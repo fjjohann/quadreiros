@@ -112,8 +112,9 @@ const quadreiroPix = document.querySelector("#quadreiro-pix");
 const quadreiroObservacoes = document.querySelector("#quadreiro-observacoes");
 const quadreiroSede = document.querySelector("#quadreiro-sede");
 const registrosBody = document.querySelector("#registros-body");
+const registrosSection = document.querySelector("#registros-section");
+const registrosTitle = document.querySelector("#registros-title");
 const openRegisterQuadreiroButton = document.querySelector("#open-register-quadreiro");
-const clearRegistrosButton = document.querySelector("#clear-registros");
 const quadreiroModal = document.querySelector("#quadreiro-modal");
 const quadreiroModalOverlay = document.querySelector("#quadreiro-modal-overlay");
 const closeQuadreiroModalButton = document.querySelector("#close-quadreiro-modal");
@@ -208,6 +209,8 @@ function updateQuadreirosDisponiveis() {
     option.textContent = quadreiro.nome;
     quadreiroSelect.appendChild(option);
   });
+
+  renderRegistros();
 }
 
 function openQuadreiroModal() {
@@ -229,16 +232,29 @@ function closeQuadreiroModal() {
 }
 
 function renderRegistros() {
-  if (!registros.length) {
+  const arbitro = getArbitroByName(arbitroSelect.value);
+
+  if (!arbitro) {
+    registrosSection.classList.add("hidden-section");
+    registrosBody.innerHTML = "";
+    return;
+  }
+
+  registrosSection.classList.remove("hidden-section");
+  registrosTitle.textContent = `Registros recentes - ${arbitro.sede}`;
+
+  const registrosFiltrados = registros.filter((registro) => registro.sede === arbitro.sede);
+
+  if (!registrosFiltrados.length) {
     registrosBody.innerHTML = `
       <tr>
-        <td class="empty-state" colspan="5">Nenhum registro lancado ainda.</td>
+        <td class="empty-state" colspan="5">Nenhum registro lancado para essa sede ainda.</td>
       </tr>
     `;
     return;
   }
 
-  registrosBody.innerHTML = registros
+  registrosBody.innerHTML = registrosFiltrados
     .slice()
     .reverse()
     .map(
@@ -302,9 +318,10 @@ registroForm.addEventListener("submit", (event) => {
   registros = [...registros, novoRegistro];
   saveStoredData(STORAGE_KEYS.registros, registros);
 
+  const arbitroSelecionado = arbitro.nome;
   renderRegistros();
   registroForm.reset();
-  registroSede.value = "";
+  arbitroSelect.value = arbitroSelecionado;
   setDefaultHora();
   updateQuadreirosDisponiveis();
 });
@@ -317,12 +334,6 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !quadreiroModal.classList.contains("hidden")) {
     closeQuadreiroModal();
   }
-});
-
-clearRegistrosButton.addEventListener("click", () => {
-  registros = [];
-  saveStoredData(STORAGE_KEYS.registros, registros);
-  renderRegistros();
 });
 
 fillStaticSelects();

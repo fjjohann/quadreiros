@@ -258,6 +258,10 @@ tbody tr:last-child td {
   padding: 24px;
 }
 
+.hidden-section {
+  display: none;
+}
+
 .modal {
   position: fixed;
   inset: 0;
