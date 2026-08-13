@@ -142,6 +142,7 @@ const registroEditSede = document.querySelector("#registro-edit-sede");
 const registroEditQuadreiro = document.querySelector("#registro-edit-quadreiro");
 const registroEditHora = document.querySelector("#registro-edit-hora");
 const registroEditQuantidade = document.querySelector("#registro-edit-quantidade");
+const deleteRegistroButton = document.querySelector("#delete-registro-button");
 
 let quadreiros = [];
 let registros = [];
@@ -738,6 +739,17 @@ async function updateRegistro(registroId, payload) {
   }
 }
 
+async function deleteRegistro(registroId) {
+  const { error } = await supabase
+    .from("registros")
+    .delete()
+    .eq("id", registroId);
+
+  if (error) {
+    throw error;
+  }
+}
+
 arbitroSelect.addEventListener("change", updateQuadreirosDisponiveis);
 
 quadreiroForm.addEventListener("submit", async (event) => {
@@ -841,6 +853,29 @@ if (registroEditForm) {
     } catch (error) {
       console.error("Erro ao atualizar registro:", error);
       window.alert("Nao foi possivel atualizar o registro agora.");
+    }
+  });
+}
+
+if (deleteRegistroButton) {
+  deleteRegistroButton.addEventListener("click", async () => {
+    if (!editingRegistroId) {
+      return;
+    }
+
+    const confirmed = window.confirm("Deseja realmente excluir este registro?");
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await deleteRegistro(editingRegistroId);
+      await syncRemoteData();
+      closeRegistroEditModal();
+    } catch (error) {
+      console.error("Erro ao excluir registro:", error);
+      window.alert("Nao foi possivel excluir o registro agora.");
     }
   });
 }
