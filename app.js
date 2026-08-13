@@ -235,15 +235,30 @@ function renderRegistros() {
   const arbitro = getArbitroByName(arbitroSelect.value);
 
   if (!arbitro) {
-    registrosSection.classList.add("hidden-section");
-    registrosBody.innerHTML = "";
+    if (registrosSection) {
+      registrosSection.classList.add("hidden-section");
+    }
+
+    if (registrosBody) {
+      registrosBody.innerHTML = "";
+    }
+
     return;
   }
 
-  registrosSection.classList.remove("hidden-section");
-  registrosTitle.textContent = `Registros recentes - ${arbitro.sede}`;
+  if (registrosSection) {
+    registrosSection.classList.remove("hidden-section");
+  }
+
+  if (registrosTitle) {
+    registrosTitle.textContent = `Registros recentes - ${arbitro.sede}`;
+  }
 
   const registrosFiltrados = registros.filter((registro) => registro.sede === arbitro.sede);
+
+  if (!registrosBody) {
+    return;
+  }
 
   if (!registrosFiltrados.length) {
     registrosBody.innerHTML = `
@@ -326,9 +341,17 @@ registroForm.addEventListener("submit", (event) => {
   updateQuadreirosDisponiveis();
 });
 
-openRegisterQuadreiroButton.addEventListener("click", openQuadreiroModal);
-closeQuadreiroModalButton.addEventListener("click", closeQuadreiroModal);
-quadreiroModalOverlay.addEventListener("click", closeQuadreiroModal);
+if (openRegisterQuadreiroButton) {
+  openRegisterQuadreiroButton.addEventListener("click", openQuadreiroModal);
+}
+
+if (closeQuadreiroModalButton) {
+  closeQuadreiroModalButton.addEventListener("click", closeQuadreiroModal);
+}
+
+if (quadreiroModalOverlay) {
+  quadreiroModalOverlay.addEventListener("click", closeQuadreiroModal);
+}
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !quadreiroModal.classList.contains("hidden")) {
